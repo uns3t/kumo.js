@@ -240,24 +240,56 @@ const updater={
 
 
 //watcher
-function Watcher() {
-
+function Watcher(vm,expOrfn,cb) {
+    this.vm=vm
+    expOrfn=expOrfn.trim()
+    this.expOrfn=expOrfn
+    this.cb=cb
+    this.depIds={}
+    if(typeof expOrfn=='function'){
+        this.getter=expOrfn
+    }else {
+        this.getter=this.parseGetter(expOrfn)
+    }
+    this.value=this.get()
 }
 Watcher.prototype={
-    updata:function () {
-
+    update:function () {
+        this.run()
     },
     run:function () {
-
+        let newVal=this.get()
+        let oldVal=this.value
+        if(newVal===oldVal){
+            return
+        }
+        this.value=newVal
+        this.cb.call(this.vm,newVal,oldVal)
     },
     get:function () {
-
+        Dep.target=this
+        let value=this.getter.call(this.vm.this.vm)
+        Dep.target=null
+        return value
     },
-    addDep:function () {
-
+    addDep:function (dep) {
+        if(!this.depIds.hasOwnProperty(dep.id)){
+            dep.addSub(this)
+            this.depIds[dep.id]=dep
+        }
     },
-    parseGetter:function () {
-
+    parseGetter:function (exp) {
+        if(/[^\w.$]/.test(exp)){
+            return
+        }
+        let exps=exp.split('.');
+        return function (obj) {
+            for(let i=0,len=exps.length;i<len;i++){
+                if(!obj) return;
+                obj=obj[exps[i]]
+            }
+            return obj
+        }
     }
 }
 
