@@ -1,9 +1,9 @@
 //数据劫持
-
+//一个数据会和一个Observer一一对应
 
 function Observer(value) {
-    this.value=value
-    this.walk(value)
+    this.value=value   //数据保存
+    this.walk(value)  //对data的遍历，和数据劫持
 }
 
 Observer.prototype={
@@ -11,14 +11,15 @@ Observer.prototype={
         let self=this
         Object.keys(obj).forEach((key)=>{
             self.observePrototype(obj,key,obj[key])
+            //对嵌套的对象进行遍历，采用了类似递归的方法
         })
     },
     observePrototype:function (obj,key,val) {
         let dep=new Dep()
-        let chalnode=observe(val)
+        let chalnode=observe(val)   //
         Object.defineProperty(obj,key,{
-            enumerable:true,
-            configurable:true,
+            enumerable:true,   //可枚举的
+            configurable:true,  //配置可修改
             get:function () {
                 if(Dep.target){
                     dep.depend()
@@ -33,7 +34,7 @@ Observer.prototype={
                     return
                 }
                 val=newVal
-                chalnode=observe(newVal)
+                chalnode=observe(newVal)  //对新数据进行劫持
                 dep.notify()
             }
 
@@ -53,10 +54,12 @@ function observe(val) {
 let uid=0
 
 function Dep() {
-    this.uid++
+    this.id=uid++
+
+    //存储watcher
     this.subs=[]
 }
-Dep.target=null
+Dep.target=null     //保存对应的watcher
 Dep.prototype={
     addSub:function (sub) {
         this.subs.push(sub)
@@ -293,12 +296,35 @@ Watcher.prototype={
     }
 }
 
-//
-function Kumo() {
+//主线剧情
+function Kumo(options) {
+    this.$options=options||{}
+    let data=this._data=this.$options.data
+    let self=this
+    Object.keys(data).forEach(key=>{
+        self._proxyData(key)
+    })
 
+    //添加数据劫持
+    observe(data,this)
+
+    //指令解析
+    new Compile(options.el||document.body,this)
 }
 Kumo.prototype={
-    _proxyData:function () {
-
+    //对实例的属性进行代理管理
+    _proxyData:function (key,getter,setter) {
+        let self=this
+        setter=setter||
+            Object.defineProperty((self,key,{
+                configurable: false,
+                enumerable: true,
+                get:function proxyGetter() {
+                    return self._data[key]
+                },
+                set:function proxySetter(newVal) {
+                    self._data[key]=newVal
+                }
+            }))
     }
 }
